@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ranaji Automobile">
+<title>Ranaji Automobile — Stock Management</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#000;color:#111}
+header{background:#111;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:21px}.wrap{max-width:1100px;margin:auto;padding:20px}
+.card{background:white;border-radius:14px;padding:18px;box-shadow:0 3px 14px #00000012;margin-bottom:18px}
+.login{max-width:420px;margin:8vh auto}.login h2{text-align:center;color:#111}.logo{font-size:30px;text-align:center;color:#fff;background:#111;padding:20px;border-radius:14px 14px 0 0}
+input,select,button{width:100%;padding:11px;border:1px solid #ddd;border-radius:8px;margin:5px 0 10px;font-size:15px}
+button{background:#e53935;color:#fff;border:0;font-weight:bold;cursor:pointer}.dark{background:#111;color:white}.danger{background:#b71c1c;color:white}.lowCard{cursor:pointer;border:2px solid #e53935}.lowCard:hover{background:#fff5f5}.lowBadge{color:#e53935}.modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}.modalBox{background:#fff;width:min(800px,100%);max-height:85vh;overflow:auto;border-radius:14px;padding:20px}.modalBox h2{margin-top:0;color:#b71c1c}.closeBtn{background:#111!important;color:#fff!important;width:auto!important}.lowRow{background:#fff5f5}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat b{font-size:26px;display:block;margin-top:8px}.muted{color:#666;font-size:13px}
+.row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:8px;align-items:center}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;font-size:14px}th{background:#fafafa}
+.actions{display:flex;gap:8px}.actions button{width:auto;padding:7px 10px;margin:0}
+.hidden{display:none}.low{color:#d00;font-weight:bold}.topbar{display:flex;gap:10px;align-items:center}.topbar button{width:auto;margin:0}
+@media(max-width:750px){.grid{grid-template-columns:repeat(2,1fr)}.row{grid-template-columns:1fr 1fr}.row>*:first-child{grid-column:1/-1}table{font-size:12px;display:block;overflow:auto;white-space:nowrap}}
+</style>
+</head>
+<body>
+<div id="loginPage" class="wrap">
+  <div class="card login">
+    <div class="logo">🏍️ RANAJI AUTOMOBILE</div>
+    <h2>Stock Management Login</h2>
+    <p class="muted">अपने stock dashboard में प्रवेश करें</p>
+    <input id="user" placeholder="Username" value="admin">
+    <input id="pass" type="password" placeholder="Password">
+    <button onclick="login()">LOGIN</button>
+    <p id="loginMsg" class="muted"></p>
+    <small>Login: <b>admin</b> / <b>2529</b></small>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+<header><h1>🏍️ Ranaji Automobile — Stock Management</h1><div class="topbar"><button id="installBtn" onclick="installApp()" class="dark" style="display:none">🏠 Add to Home Screen</button><button onclick="logout()" class="dark">Logout</button></div></header>
+<div class="wrap">
+<div class="grid">
+<div class="card stat"><div class="muted">Total Products</div><b id="totalProducts">0</b></div>
+<div class="card stat"><div class="muted">Total Quantity</div><b id="totalQty">0</b></div>
+<div class="card stat"><div class="muted">Today's Sales Qty</div><b id="todaySales">0</b></div>
+<div class="card stat lowCard" onclick="showLowStock()"><div class="muted">⚠️ Low Stock — Click Here</div><b id="lowStock" class="lowBadge">0</b><div class="muted">कम पड़े सभी parts देखें</div></div>
+</div>
+
+<div class="card">
+<h2>Add / Update Product</h2>
+<div class="row">
+<input id="pname" placeholder="Product name">
+<input id="part" placeholder="Part Number">
+<select id="category"><option value="">Select Category</option><option>Engine</option><option>Brake</option><option>Clutch</option><option>Electrical</option><option>Body Parts</option><option>Suspension</option><option>Tyre / Wheel</option><option>Service Items</option><option>Other</option></select>
+<input id="qty" type="number" min="0" placeholder="Quantity">
+<input id="buy" type="number" min="0" placeholder="Purchase Price">
+<input id="sell" type="number" min="0" placeholder="Selling Price">
+</div>
+<input id="min" type="number" min="0" placeholder="Minimum stock alert (e.g. 5)">
+<button onclick="addProduct()">Save Product</button>
+</div>
+
+<div class="card">
+<h2>Stock / Sales</h2>
+<div class="row">
+<select id="productSelect"></select>
+<input id="moveQty" type="number" min="1" placeholder="Quantity">
+<select id="moveType"><option value="in">Stock In / Purchase</option><option value="out">Sale / Stock Out</option></select>
+<button onclick="stockMove()">Update Stock</button>
+<input id="search" placeholder="🔍 Smart Search: product / part no. / category" oninput="smartSearch()">
+</div>
+</div>
+
+<div class="card">
+<h2>Current Stock <span id="searchCount" class="muted"></span></h2>
+<table><thead><tr><th>Product</th><th>Part No.</th><th>Category</th><th>Qty</th><th>Buy</th><th>Sell</th><th>Stock Value</th><th>Status</th><th>Action</th></tr></thead>
+<tbody id="tbody"></tbody></table>
+</div>
+
+<div class="card">
+<h2>Complete Transaction History</h2>
+<div class="row"><input id="txSearch" placeholder="🔍 Search transaction / product" oninput="renderTransactions()"><select id="txFilter" onchange="renderTransactions()"><option value="all">All Transactions</option><option value="Stock In">Stock In / Purchase</option><option value="Sale">Sale / Stock Out</option></select><input id="txFrom" type="date" onchange="renderTransactions()"><input id="txTo" type="date" onchange="renderTransactions()"><button onclick="clearTxFilters()" class="dark">Clear Filters</button></div><p class="muted" id="txCount"></p><table><thead><tr><th>Date & Time</th><th>Product</th><th>Category</th><th>Type</th><th>Qty</th></tr></thead><tbody id="txbody"></tbody></table>
+</div>
+</div></div>
+
+<div id="lowStockModal" class="modal hidden" onclick="if(event.target===this)closeLowStock()">
+  <div class="modalBox">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>⚠️ Low Stock Details</h2><button class="closeBtn" onclick="closeLowStock()">Close</button></div>
+    <p class="muted">जिन products की quantity minimum stock level पर या उससे कम है:</p>
+    <table><thead><tr><th>Product</th><th>Part No.</th><th>Category</th><th>Current Qty</th><th>Minimum</th><th>Status</th></tr></thead><tbody id="lowStockBody"></tbody></table>
+  </div>
+</div>
+
+<script>
+const KEY="ranajiStockV1";
+let data=JSON.parse(localStorage.getItem(KEY)||'{"products":[],"tx":[]}');
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function login(){if(document.getElementById('user').value==='admin'&&document.getElementById('pass').value==='2529'){sessionStorage.ok='1';showApp()}else document.getElementById('loginMsg').textContent='Username या password गलत है।'}
+function logout(){sessionStorage.removeItem('ok');location.reload()}
+function showApp(){loginPage.classList.add('hidden');app.classList.remove('hidden');render()}
+function addProduct(){
+ let name=pname.value.trim(), partn=part.value.trim();
+ if(!name)return alert('Product name डालें');
+ let cat=category.value.trim();
+  let existing=data.products.find(p=>p.part.toLowerCase()===partn.toLowerCase()&&partn);
+ if(existing){existing.name=name;existing.category=cat;existing.qty=+qty.value||0;existing.buy=+buy.value||0;existing.sell=+sell.value||0;existing.min=+min.value||0}
+ else data.products.push({id:Date.now(),name,part:partn,category:cat,qty:+qty.value||0,buy:+buy.value||0,sell:+sell.value||0,min:+min.value||0});
+ ['pname','part','category','qty','buy','sell','min'].forEach(x=>document.getElementById(x).value='');save()
+}
+function stockMove(){
+ let id=+productSelect.value,q=+moveQty.value||0,type=moveType.value,p=data.products.find(x=>x.id===id);
+ if(!p||q<1)return alert('Product और quantity चुनें');
+ if(type==='out'&&q>p.qty)return alert('इतना stock उपलब्ध नहीं है');
+ p.qty += type==='in'?q:-q;
+ data.tx.unshift({date:new Date().toLocaleString('en-IN'),iso:new Date().toISOString(),product:p.name,category:p.category||'-',type:type==='in'?'Stock In':'Sale',qty:q});
+ save();moveQty.value=''
+}
+function del(id){if(confirm('इस product को delete करें?')){data.products=data.products.filter(p=>p.id!==id);save()}}
+function showLowStock(){let list=data.products.filter(p=>p.qty<=p.min);lowStockBody.innerHTML=list.map(p=>`<tr class="lowRow"><td>${esc(p.name)}</td><td>${esc(p.part||'-')}</td><td>${esc(p.category||'-')}</td><td>${p.qty}</td><td>${p.min}</td><td class="low">LOW STOCK</td></tr>`).join('')||'<tr><td colspan="6">No low-stock items 🎉</td></tr>';lowStockModal.classList.remove('hidden')}
+function closeLowStock(){lowStockModal.classList.add('hidden')}
+function render(){
+ totalProducts.textContent=data.products.length;
+ totalQty.textContent=data.products.reduce((s,p)=>s+p.qty,0);
+ let today=new Date().toLocaleDateString('en-IN');
+ todaySales.textContent=data.tx.filter(t=>t.type==='Sale'&&t.date.startsWith(today)).reduce((s,t)=>s+t.qty,0);
+ lowStock.textContent=data.products.filter(p=>p.qty<=p.min).length;
+ productSelect.innerHTML='<option value="">Select Product</option>'+data.products.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.qty})</option>`).join('');
+ renderTable();renderTransactions()
+}
+function renderTable(){
+ let q=(search.value||'').toLowerCase();
+ let filtered=data.products.filter(p=>(p.name+' '+p.part+' '+(p.category||'')).toLowerCase().includes(q));
+  searchCount.textContent=filtered.length+' item(s)';
+  tbody.innerHTML=filtered.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.part||'-')}</td><td>${esc(p.category||'-')}</td><td class="${p.qty<=p.min?'low':''}">${p.qty}</td><td>₹${p.buy}</td><td>₹${p.sell}</td><td>₹${p.qty*p.buy}</td><td>${p.qty<=p.min?'LOW STOCK':'OK'}</td><td><div class="actions"><button onclick="editProduct(${p.id})">Edit</button><button class="danger" onclick="del(${p.id})">Delete</button></div></td></tr>`).join('')
+}
+function editProduct(id){let p=data.products.find(x=>x.id===id);pname.value=p.name;part.value=p.part;category.value=p.category||'';qty.value=p.qty;buy.value=p.buy;sell.value=p.sell;min.value=p.min;scrollTo({top:0,behavior:'smooth'})}
+function smartSearch(){renderTable();let q=(search.value||'').toLowerCase().trim();if(!q)return;let p=data.products.find(x=>(x.name+' '+x.part+' '+(x.category||'')).toLowerCase().includes(q));if(p)productSelect.value=p.id}
+function renderTransactions(){let q=(txSearch.value||'').toLowerCase();let f=txFilter.value,from=txFrom.value,to=txTo.value;let list=data.tx.filter(t=>{let d=t.iso?t.iso.slice(0,10):'';return (!q||(t.product+' '+(t.category||'')+' '+t.type+' '+t.date).toLowerCase().includes(q))&&(f==='all'||t.type===f)&&(!from||d>=from)&&(!to||d<=to)});txCount.textContent=list.length+' transaction(s)';txbody.innerHTML=list.map(t=>`<tr><td>${esc(t.date)}</td><td>${esc(t.product)}</td><td>${esc(t.category||'-')}</td><td>${esc(t.type)}</td><td>${t.qty}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No transactions found</td></tr>'}
+function clearTxFilters(){txSearch.value='';txFilter.value='all';txFrom.value='';txTo.value='';renderTransactions()}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+if(sessionStorage.ok==='1')showApp();
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=document.getElementById('installBtn');if(b)b.style.display='block';});
+async function installApp(){if(!deferredPrompt){alert('Chrome के ⋮ menu में “Add to Home screen” चुनें।');return;}deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;const b=document.getElementById('installBtn');if(b)b.style.display='none';}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body></html>
